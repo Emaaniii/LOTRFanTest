@@ -1,0 +1,999 @@
+/* ============================================================
+   THE ONE QUIZ — A Lord of the Rings themed quiz
+   ============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* fluid typographic scale */
+  --fs-body: clamp(0.95rem, 0.6rem + 0.6vw, 1.2rem);
+  --fs-title: clamp(2.2rem, 1.4rem + 3.2vw, 4.4rem);
+  --fs-subtitle: clamp(1rem, 0.85rem + 0.5vw, 1.35rem);
+  --fs-h2: clamp(1.4rem, 1.05rem + 1.4vw, 2.2rem);
+  --fs-prompt: clamp(1.15rem, 0.9rem + 1vw, 1.8rem);
+
+  /* fluid spacing */
+  --pad-section: clamp(1.5rem, 4vw, 4rem);
+  --pad-card: clamp(1.25rem, 1rem + 1.5vw, 2.5rem);
+
+  /* feature artwork sizes */
+  --ring-size: clamp(180px, 28vw, 360px);
+  --big-ring-size: clamp(220px, 40vw, 460px);
+  --hobbit-hole-w: clamp(180px, 28vw, 320px);
+  --eye-w: clamp(260px, 60vw, 640px);
+  --gate-w: clamp(280px, 60vw, 720px);
+}
+
+html { font-size: 16px; }
+@media (min-width: 1600px) { html { font-size: 18px; } }
+@media (min-width: 2200px) { html { font-size: 20px; } }
+
+html, body {
+  color: #3a230b;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: var(--fs-body);
+  overflow-x: hidden;
+  cursor: none; /* the Evenstar replaces it */
+}
+body {
+  background-color: #0a0604;
+  background-image:
+    /* warm amber firelight glow (like the lit ring of stone in the Hobbit poster) */
+    radial-gradient(ellipse 55% 45% at 50% 28%, rgba(230, 130, 40, 0.20), transparent 72%),
+    radial-gradient(ellipse 32% 26% at 50% 28%, rgba(255, 175, 70, 0.16), transparent 72%),
+    radial-gradient(ellipse 18% 14% at 50% 28%, rgba(255, 220, 130, 0.10), transparent 72%),
+    /* warm ambient stone glow in the mid-bands */
+    radial-gradient(ellipse 60% 40% at 22% 60%, rgba(120, 75, 35, 0.32), transparent 72%),
+    radial-gradient(ellipse 60% 40% at 78% 60%, rgba(110, 70, 32, 0.30), transparent 72%),
+    radial-gradient(ellipse 50% 30% at 50% 88%, rgba(80, 50, 25, 0.40), transparent 72%),
+    /* dirty stone speckles */
+    radial-gradient(circle 60px at 30% 45%, rgba(60, 40, 20, 0.45), transparent 78%),
+    radial-gradient(circle 90px at 70% 75%, rgba(50, 32, 16, 0.40), transparent 78%),
+    radial-gradient(circle 50px at 80% 30%, rgba(40, 26, 14, 0.35), transparent 78%),
+    /* very subtle wood-grain hint (vertical streaks like door planks) */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0, transparent 5px,
+      rgba(120, 70, 30, 0.022) 5px, rgba(120, 70, 30, 0.022) 6px
+    ),
+    /* fine warm grain (stone) */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0, transparent 3px,
+      rgba(80, 50, 25, 0.025) 3px, rgba(80, 50, 25, 0.025) 4px
+    ),
+    /* moody vignette — corners drop into shadow */
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 38%, rgba(0, 0, 0, 0.7) 100%),
+    /* deep dark-brown base */
+    linear-gradient(180deg, #1a0c06 0%, #110704 45%, #080302 80%, #050201 100%);
+  background-attachment: fixed;
+}
+
+a, button, .friend, [data-clickable] { cursor: none; }
+
+/* ============ PHIAL OF GALADRIEL CURSOR ============ */
+.phial-cursor {
+  position: fixed;
+  top: 0; left: 0;
+  width: 46px; height: 72px;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -10%);
+  filter:
+    drop-shadow(0 0 8px rgba(220, 240, 255, 0.85))
+    drop-shadow(0 0 18px rgba(160, 210, 255, 0.55));
+  transition: filter 0.3s;
+}
+.phial-cursor svg {
+  display: block;
+  transform-origin: 50% 0%;
+  animation: phial-sway 3.4s ease-in-out infinite;
+}
+.phial-cursor .phial-star {
+  transform-origin: 30px 58px;
+  animation: phial-twinkle 2.4s ease-in-out infinite;
+}
+.phial-cursor .phial-rays {
+  transform-origin: 30px 58px;
+  animation: phial-rays 6s linear infinite;
+}
+@keyframes phial-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+@keyframes phial-twinkle {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.18); }
+}
+@keyframes phial-rays {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ============ RING HEADER (Mordor gloom) ============ */
+.ring-header {
+  position: relative;
+  text-align: center;
+  padding: var(--pad-section) clamp(1rem, 3vw, 3rem);
+  overflow: hidden;
+  background:
+    /* distant fire of Orodruin on the horizon */
+    radial-gradient(ellipse 22% 5% at 78% 92%, rgba(255, 130, 30, 0.65), transparent 70%),
+    radial-gradient(ellipse 12% 3% at 78% 94%, rgba(255, 200, 80, 0.85), transparent 70%),
+    /* secondary fire pinprick */
+    radial-gradient(circle 1.2vw at 22% 90%, rgba(255, 110, 30, 0.45), transparent 70%),
+    /* heavy cloud cover */
+    radial-gradient(ellipse 90% 35% at 30% 18%, rgba(60, 56, 70, 0.55), transparent 70%),
+    radial-gradient(ellipse 80% 30% at 75% 32%, rgba(48, 42, 58, 0.55), transparent 70%),
+    radial-gradient(ellipse 70% 22% at 50% 70%, rgba(28, 20, 28, 0.7), transparent 70%),
+    /* deep gloom — black sky over Mordor */
+    linear-gradient(180deg, #050309 0%, #0a0810 45%, #100806 75%, #1a0a06 100%);
+  border-bottom: 1px solid #2a0a0a;
+  box-shadow: inset 0 -1.5vmin 4vmin rgba(0, 0, 0, 0.7);
+}
+.ring-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* faint warm glow lifting the ring off the dark sky */
+    radial-gradient(ellipse 45% 55% at 50% 45%, rgba(255, 140, 40, 0.18), transparent 75%),
+    radial-gradient(ellipse 30% 35% at 50% 45%, rgba(255, 200, 100, 0.14), transparent 70%);
+  pointer-events: none;
+}
+.ring-header::after {
+  /* drifting cloud streaks */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      105deg,
+      transparent 0,
+      transparent 14vmin,
+      rgba(255, 255, 255, 0.018) 14vmin,
+      rgba(255, 255, 255, 0.018) 16vmin,
+      transparent 16vmin,
+      transparent 30vmin
+    );
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.ring-stage {
+  width: var(--ring-size);
+  aspect-ratio: 1 / 1;
+  height: auto;
+  margin: 0 auto clamp(0.75rem, 1.5vw, 1.5rem);
+  position: relative;
+  z-index: 1;
+  filter:
+    drop-shadow(0 0.5vw 1.2vw rgba(60, 30, 5, 0.55))
+    drop-shadow(0 0 1.2vw rgba(150, 220, 255, 0.35));
+}
+.ring-svg { width: 100%; height: 100%; }
+.ring-inscription {
+  transform-origin: 210px 210px;
+  animation: spin 28s linear infinite;
+}
+.ring-inscription.slow {
+  transform-origin: 250px 250px;
+  animation-duration: 50s;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.title {
+  position: relative;
+  z-index: 1;
+  font-family: 'Cinzel', serif;
+  font-size: var(--fs-title);
+  font-weight: 900;
+  color: #f0d590;
+  letter-spacing: 0.18em;
+  text-shadow:
+    0 0 14px rgba(255, 160, 60, 0.45),
+    0 0 32px rgba(255, 80, 20, 0.25),
+    0 2px 0 #08040a;
+  line-height: 1.1;
+}
+.subtitle {
+  position: relative;
+  z-index: 1;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: var(--fs-subtitle);
+  color: #b8a070;
+  margin-top: clamp(0.25rem, 0.5vw, 0.6rem);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+/* ============ THE SHIRE (welcome page over Hobbit-doorway gloom) ============ */
+.shire {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  /* the dark warm Hobbit-doorway body background shows through */
+}
+
+/* ----- gloomy clouds drifting across the welcome page ----- */
+.gloomy-clouds {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.g-cloud {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(60, 44, 32, 0.65) 0%,
+    rgba(40, 28, 18, 0.42) 35%,
+    rgba(20, 14, 8, 0.20) 60%,
+    transparent 78%
+  );
+  filter: blur(14px);
+  will-change: transform;
+}
+.g-cloud-1 {
+  width: 46vw; height: 18vh; top:  6%; left: -50vw;
+  animation: gloom-drift  90s linear infinite;
+}
+.g-cloud-2 {
+  width: 60vw; height: 24vh; top: 24%; left: -60vw;
+  animation: gloom-drift 130s linear infinite;
+  animation-delay: -40s;
+  opacity: 0.85;
+}
+.g-cloud-3 {
+  width: 38vw; height: 14vh; top: 42%; left: -40vw;
+  animation: gloom-drift  75s linear infinite;
+  animation-delay: -25s;
+  opacity: 0.7;
+}
+.g-cloud-4 {
+  width: 70vw; height: 28vh; top: 56%; left: -70vw;
+  animation: gloom-drift 160s linear infinite;
+  animation-delay: -90s;
+}
+.g-cloud-5 {
+  width: 30vw; height: 12vh; top: 72%; left: -35vw;
+  animation: gloom-drift  68s linear infinite;
+  animation-delay: -10s;
+  opacity: 0.65;
+}
+.g-cloud-6 {
+  width: 50vw; height: 20vh; top: 86%; left: -55vw;
+  animation: gloom-drift 110s linear infinite;
+  animation-delay: -60s;
+  opacity: 0.8;
+}
+@keyframes gloom-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(170vw); }
+}
+
+
+.shire-card {
+  position: relative;
+  z-index: 2;
+  width: min(620px, 92%);
+  margin: clamp(3rem, 8vw, 6rem) auto clamp(3rem, 8vw, 6rem);
+  padding: var(--pad-card);
+  background:
+    linear-gradient(135deg, rgba(247, 232, 196, 0.94), rgba(232, 213, 168, 0.94));
+  border: 0.15vmin solid #6a4f2a;
+  border-radius: 0.4rem;
+  box-shadow:
+    0 1.2vmin 3vmin rgba(0,0,0,0.3),
+    inset 0 0 4vmin rgba(140, 100, 60, 0.15);
+  color: #3a2a14;
+  font-size: clamp(1rem, 0.85rem + 0.4vw, 1.2rem);
+}
+.shire-card h2 {
+  font-family: 'Cinzel', serif;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #4a2a08;
+  margin-bottom: clamp(0.4rem, 1vw, 0.9rem);
+  text-align: center;
+  line-height: 1.2;
+}
+.shire-card p { line-height: 1.55; margin-bottom: clamp(0.4rem, 1vw, 0.8rem); }
+.shire-card .quietly {
+  font-style: italic;
+  color: #6a4a2a;
+  text-align: right;
+  margin-top: clamp(0.6rem, 1.5vw, 1.2rem);
+}
+
+/* ============ STONE BUTTON ============ */
+.btn-stone {
+  display: inline-block;
+  margin-top: clamp(0.6rem, 1.4vw, 1.2rem);
+  padding: clamp(0.55rem, 0.4rem + 0.5vw, 0.95rem) clamp(1rem, 0.6rem + 1.6vw, 2.2rem);
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.85rem, 0.7rem + 0.3vw, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #f5e3b3;
+  background:
+    linear-gradient(180deg, #3a2814 0%, #1f1408 100%);
+  border: 0.15vmin solid #6a4a20;
+  border-radius: 0.25rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 150, 0.18),
+    0 0.4vmin 1.2vmin rgba(0,0,0,0.5);
+  transition: transform 0.15s, box-shadow 0.2s, color 0.2s;
+}
+.btn-stone:hover {
+  color: #fff5d0;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 150, 0.3),
+    0 6px 18px rgba(255, 160, 60, 0.35);
+}
+.btn-stone:active { transform: translateY(1px); }
+.btn-stone.hidden { display: none; }
+
+/* ============ DOORS OF DURIN ============ */
+.durin {
+  position: relative;
+  min-height: 100vh;
+  display: none;
+  background: #050507;
+  overflow: hidden;
+}
+.durin.show { display: block; animation: fadeIn 1.4s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.moria-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, #0e1018 0%, #050507 70%),
+    repeating-linear-gradient(180deg, transparent 0, transparent 8px, rgba(255,255,255,0.012) 8px, rgba(255,255,255,0.012) 9px);
+}
+.durin-stage {
+  position: relative;
+  width: min(var(--gate-w), 92%);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 3vw, 3rem) clamp(0.75rem, 2vw, 1.5rem) clamp(3rem, 6vw, 5rem);
+  text-align: center;
+}
+.durin-doors {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 3vmin rgba(0,0,0,0.8));
+}
+.mithril-line,
+.tengwar,
+.star-feanor,
+.crown,
+.trees,
+.anvil {
+  opacity: 0.18;
+  transition: opacity 1.6s ease, filter 1.6s ease, stroke 1.6s ease;
+}
+.durin.activated .mithril-line,
+.durin.activated .tengwar,
+.durin.activated .star-feanor,
+.durin.activated .crown,
+.durin.activated .trees,
+.durin.activated .anvil {
+  opacity: 1;
+  stroke: #cdeaff;
+  fill: #cdeaff;
+  filter:
+    drop-shadow(0 0 6px #aee2ff)
+    drop-shadow(0 0 14px #5cb8ff)
+    drop-shadow(0 0 28px #2a8be0);
+  animation: gateGlowPulse 2.8s ease-in-out infinite;
+}
+.durin.activated .crown {
+  animation: gateGlowPulse 2.4s ease-in-out infinite, crownShimmer 4s ease-in-out infinite;
+}
+.durin.activated .tengwar {
+  animation: gateGlowPulse 2.6s ease-in-out infinite, runePulse 5s linear infinite;
+}
+@keyframes gateGlowPulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 5px #aee2ff)
+      drop-shadow(0 0 12px #5cb8ff)
+      drop-shadow(0 0 22px #2a8be0);
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 10px #ffffff)
+      drop-shadow(0 0 22px #8cd8ff)
+      drop-shadow(0 0 40px #38a4f0);
+  }
+}
+@keyframes crownShimmer {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+@keyframes runePulse {
+  0%, 100% { letter-spacing: 3px; }
+  50%      { letter-spacing: 4px; }
+}
+
+.durin .arch-glow { fill: #6cc6ff; opacity: 0; transition: opacity 1.6s; }
+.durin.activated .arch-glow {
+  opacity: 0.0;
+  animation: archPulse 3.2s ease-in-out infinite;
+}
+@keyframes archPulse {
+  0%, 100% { opacity: 0.0; }
+  50%      { opacity: 0.32; }
+}
+.durin.activated .door-split {
+  animation: openDoor 2.5s ease-in forwards;
+}
+@keyframes openDoor {
+  0%   { stroke: #2a2a3a; }
+  100% { stroke: #6cc6ff; }
+}
+
+.durin-prompt {
+  margin-top: clamp(0.8rem, 2vw, 1.6rem);
+  color: #b9c9d8;
+  font-family: 'Cinzel', serif;
+}
+.speak {
+  font-size: var(--fs-prompt);
+  letter-spacing: 0.15em;
+  margin-bottom: clamp(0.5rem, 1.4vw, 1rem);
+  text-shadow: 0 0 1.2vmin rgba(160, 200, 230, 0.4);
+}
+
+/* ---- mellon input (hidden until the gate is hovered) ---- */
+.mellon-wrap {
+  display: inline-block;
+  margin-top: clamp(0.4rem, 1vw, 0.8rem);
+  padding: clamp(0.85rem, 0.6rem + 0.6vw, 1.4rem) clamp(1.1rem, 0.6rem + 1vw, 1.8rem);
+  background:
+    radial-gradient(ellipse at top, rgba(110, 180, 230, 0.10), transparent 70%),
+    rgba(8, 14, 22, 0.55);
+  border: 0.12vmin solid rgba(120, 180, 220, 0.28);
+  border-radius: 0.4rem;
+  box-shadow:
+    inset 0 0 3vmin rgba(80, 140, 200, 0.10),
+    0 0.6vmin 2vmin rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  pointer-events: none;
+  transition: opacity 0.7s ease, transform 0.7s ease, border-color 0.7s ease, box-shadow 0.7s ease;
+}
+.durin-stage:hover .mellon-wrap,
+.mellon-wrap.active,
+.mellon-wrap:focus-within {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  border-color: rgba(170, 220, 255, 0.7);
+  box-shadow:
+    inset 0 0 40px rgba(110, 180, 230, 0.18),
+    0 0 30px rgba(110, 180, 230, 0.35),
+    0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+.mellon-label {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.7rem, 0.6rem + 0.2vw, 0.9rem);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #aedcff;
+  margin-bottom: clamp(0.4rem, 1vw, 0.8rem);
+  text-shadow: 0 0 1.2vmin rgba(140, 210, 255, 0.55);
+}
+
+.mellon-input {
+  width: min(28rem, 70vw);
+  padding: clamp(0.55rem, 0.4rem + 0.4vw, 0.9rem) clamp(0.8rem, 0.5rem + 0.6vw, 1.2rem);
+  font-family: 'MedievalSharp', 'Cinzel', serif;
+  font-size: clamp(1.05rem, 0.85rem + 0.6vw, 1.6rem);
+  letter-spacing: 0.2em;
+  text-align: center;
+  color: #e8f6ff;
+  background: rgba(0, 0, 0, 0.45);
+  border: 0.12vmin solid rgba(140, 200, 240, 0.45);
+  border-radius: 0.25rem;
+  outline: none;
+  caret-color: #aedcff;
+  text-shadow: 0 0 1vmin rgba(140, 210, 255, 0.65);
+  box-shadow: inset 0 0 1.4vmin rgba(80, 140, 200, 0.18);
+  transition: border-color 0.4s, box-shadow 0.4s, background 0.4s;
+  cursor: none;
+}
+.mellon-input::placeholder {
+  color: rgba(180, 210, 230, 0.35);
+  letter-spacing: 0.6em;
+}
+.mellon-input:focus {
+  border-color: #aedcff;
+  background: rgba(10, 24, 38, 0.7);
+  box-shadow:
+    inset 0 0 18px rgba(110, 180, 230, 0.28),
+    0 0 18px rgba(140, 210, 255, 0.45);
+}
+.mellon-input.correct {
+  color: #ffffff;
+  border-color: #ffffff;
+  background:
+    linear-gradient(90deg,
+      rgba(110, 180, 230, 0.28) 0%,
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(110, 180, 230, 0.28) 100%);
+  background-size: 200% 100%;
+  animation: mellon-shimmer 1.6s linear infinite;
+  text-shadow:
+    0 0 8px #ffffff,
+    0 0 18px #aedcff,
+    0 0 36px #5cb8ff;
+  box-shadow:
+    inset 0 0 22px rgba(170, 230, 255, 0.45),
+    0 0 28px rgba(140, 210, 255, 0.7),
+    0 0 60px rgba(90, 160, 220, 0.6);
+}
+@keyframes mellon-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.mellon-hint {
+  margin-top: clamp(0.4rem, 0.8vw, 0.7rem);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: clamp(0.85rem, 0.75rem + 0.2vw, 1.05rem);
+  color: #7e96ad;
+}
+
+/* ============ QUIZ ============ */
+.quiz {
+  display: none;
+  min-height: 100vh;
+  padding: var(--pad-section) clamp(0.75rem, 2vw, 1.5rem);
+  background:
+    /* warm amber glow at the top — firelight from the doorway */
+    radial-gradient(ellipse 65% 32% at 50% 10%, rgba(225, 135, 45, 0.24), transparent 72%),
+    radial-gradient(ellipse 38% 18% at 50% 10%, rgba(255, 180, 90, 0.18), transparent 72%),
+    /* warm side-light suggesting stone walls */
+    radial-gradient(ellipse 50% 60% at 14% 55%, rgba(120, 75, 35, 0.30), transparent 75%),
+    radial-gradient(ellipse 50% 60% at 86% 55%, rgba(110, 70, 32, 0.28), transparent 75%),
+    /* deep stone-floor shadow at bottom */
+    radial-gradient(ellipse 80% 35% at 50% 92%, rgba(60, 38, 20, 0.55), transparent 72%),
+    /* moody vignette */
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 35%, rgba(0,0,0,0.55) 100%),
+    /* dark warm base */
+    linear-gradient(180deg, #1a0d06 0%, #100804 50%, #060301 100%);
+}
+.quiz.show { display: block; animation: fadeIn 1s ease; }
+
+.parchment {
+  width: min(760px, 96%);
+  margin: 0 auto;
+  padding: clamp(1.2rem, 0.8rem + 1.6vw, 2.6rem) clamp(1rem, 0.6rem + 2vw, 3.2rem);
+  background:
+    radial-gradient(ellipse at top left, #f3e2b6 0%, #ddc88a 60%, #b8a25e 100%);
+  border-radius: 0.4rem;
+  border: 0.18vmin solid #6a4a20;
+  color: #2a1a08;
+  box-shadow:
+    0 1.4vmin 4vmin rgba(0,0,0,0.6),
+    inset 0 0 8vmin rgba(140, 100, 50, 0.25);
+  position: relative;
+}
+.parchment::before, .parchment::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(120,80,40,0.15), transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(120,80,40,0.18), transparent 28%),
+    radial-gradient(circle at 60% 20%, rgba(120,80,40,0.1), transparent 25%);
+  pointer-events: none;
+  border-radius: 6px;
+}
+
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.78rem, 0.7rem + 0.25vw, 0.95rem);
+  letter-spacing: 0.1em;
+  color: #4a2a08;
+  margin-bottom: clamp(0.5rem, 1.2vw, 1rem);
+}
+.progress {
+  height: clamp(4px, 0.5vw, 8px);
+  background: rgba(74, 42, 8, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: clamp(1rem, 2vw, 1.8rem);
+}
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #b67a1a, #e7c878);
+  transition: width 0.5s;
+}
+.qtitle {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.15rem, 0.9rem + 1vw, 1.7rem);
+  font-weight: 700;
+  margin-bottom: clamp(1rem, 2vw, 1.6rem);
+  color: #3a1a04;
+  text-align: center;
+  line-height: 1.3;
+}
+.qchoices { list-style: none; }
+.qchoices li {
+  margin-bottom: clamp(0.5rem, 1vw, 0.85rem);
+  padding: clamp(0.7rem, 0.5rem + 0.6vw, 1.1rem) clamp(0.9rem, 0.6rem + 0.8vw, 1.4rem);
+  background: rgba(255, 240, 200, 0.4);
+  border: 0.15vmin solid #8a6230;
+  border-radius: 0.25rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1rem, 0.85rem + 0.4vw, 1.25rem);
+  transition: all 0.2s;
+  position: relative;
+}
+.qchoices li:hover:not(.locked) {
+  background: rgba(255, 220, 140, 0.6);
+  border-color: #b67a1a;
+  transform: translateX(4px);
+}
+.qchoices li.correct {
+  background: linear-gradient(90deg, rgba(120, 180, 100, 0.5), rgba(180, 220, 140, 0.4));
+  border-color: #3a6a18;
+  color: #1a3a08;
+}
+.qchoices li.wrong {
+  background: linear-gradient(90deg, rgba(180, 60, 40, 0.45), rgba(140, 30, 20, 0.35));
+  border-color: #6a1a08;
+  color: #3a0a04;
+  animation: shudder 0.4s;
+}
+@keyframes shudder {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.qchoices li.locked { opacity: 0.7; }
+
+.qfeedback {
+  margin-top: clamp(0.8rem, 1.6vw, 1.4rem);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: clamp(0.95rem, 0.8rem + 0.4vw, 1.2rem);
+  text-align: center;
+  min-height: 1.5em;
+  color: #4a2a08;
+}
+.qcontrols { text-align: center; margin-top: clamp(0.6rem, 1.4vw, 1.2rem); }
+
+/* ============ RESULT (WIN / LOSE) ============ */
+.result {
+  display: none;
+  min-height: 100vh;
+  position: relative;
+  text-align: center;
+  padding: var(--pad-section) clamp(0.75rem, 2vw, 1.5rem);
+  overflow: hidden;
+}
+.result.show { display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 1.6s ease; }
+
+/* WIN */
+.result.win {
+  background: radial-gradient(ellipse at center, #1a0e04 0%, #050201 70%);
+}
+.ember-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 130, 30, 0.25), transparent 60%),
+    radial-gradient(circle at 30% 80%, rgba(255, 60, 20, 0.18), transparent 50%),
+    radial-gradient(circle at 70% 20%, rgba(255, 180, 60, 0.12), transparent 50%);
+  z-index: 0;
+  animation: emberFlicker 4s ease-in-out infinite;
+}
+@keyframes emberFlicker {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+.big-ring {
+  position: relative;
+  width: var(--big-ring-size);
+  aspect-ratio: 1 / 1;
+  height: auto;
+  filter: drop-shadow(0 0 5vmin rgba(255, 160, 50, 0.7));
+  z-index: 1;
+}
+.result-card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 94%);
+  margin-top: clamp(0.8rem, 1.6vw, 1.4rem);
+  padding: var(--pad-card);
+  background: rgba(20, 10, 4, 0.8);
+  border: 0.18vmin solid #6a4a20;
+  border-radius: 0.4rem;
+  color: #f3e3b3;
+  font-size: clamp(1rem, 0.85rem + 0.4vw, 1.2rem);
+  line-height: 1.55;
+}
+.result-card.dark {
+  background: rgba(10, 4, 4, 0.85);
+  border-color: #6a1a08;
+  color: #f3c8a3;
+}
+.result-card h2 {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: var(--fs-h2);
+  letter-spacing: 0.12em;
+  margin-bottom: clamp(0.5rem, 1vw, 0.9rem);
+  color: #ffd682;
+  line-height: 1.2;
+}
+.result-card.dark h2 {
+  color: #ff8a3a;
+  text-shadow: 0 0 1.8vmin rgba(255, 80, 20, 0.7);
+}
+.result-card p { margin-bottom: clamp(0.5rem, 1vw, 0.9rem); }
+
+/* LOSE — EYE OF SAURON */
+.result.lose {
+  background: radial-gradient(ellipse at center, #2a0a02 0%, #0a0301 75%);
+}
+.fire-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 80, 10, 0.5), transparent 55%),
+    radial-gradient(circle at 30% 70%, rgba(255, 40, 0, 0.35), transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(255, 120, 30, 0.3), transparent 55%);
+  z-index: 0;
+  animation: fireFlicker 1.6s ease-in-out infinite;
+}
+@keyframes fireFlicker {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.05); }
+}
+
+.eye-of-sauron {
+  position: relative;
+  width: min(var(--eye-w), 92%);
+  margin: clamp(0.4rem, 1vw, 0.8rem) auto 0;
+  z-index: 1;
+  filter: drop-shadow(0 0 6vmin rgba(255, 110, 20, 0.85))
+          drop-shadow(0 0 12vmin rgba(255, 60, 10, 0.55));
+  animation: eyeBreath 3s ease-in-out infinite;
+}
+.eye-svg { width: 100%; height: auto; display: block; }
+
+.eye-svg .halo,
+.eye-svg .halo-inner { animation: haloFlicker 0.32s steps(2) infinite; }
+.eye-svg .halo-inner { animation-duration: 0.22s; }
+.eye-svg .iris  { animation: irisPulse  2.6s ease-in-out infinite; transform-origin: 350px 250px; transform-box: fill-box; }
+.eye-svg .pupil { animation: pupilDilate 4.5s ease-in-out infinite; transform-origin: 350px 250px; transform-box: fill-box; }
+.eye-svg .flame-licks-1 { animation: licksFlicker 0.18s steps(2) infinite; transform-origin: 350px 250px; }
+.eye-svg .flame-licks-2 { animation: licksFlicker 0.24s steps(2) infinite reverse; transform-origin: 350px 250px; }
+.eye-svg .eye-lens { animation: lensFlicker 0.2s steps(2) infinite; }
+
+@keyframes eyeBreath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.025); }
+}
+@keyframes haloFlicker {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 0.85; }
+}
+@keyframes lensFlicker {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.94; }
+}
+@keyframes irisPulse {
+  0%, 100% { transform: scaleY(1)    scaleX(1); }
+  50%      { transform: scaleY(1.06) scaleX(0.96); }
+}
+@keyframes pupilDilate {
+  0%, 100% { transform: scaleY(1)    scaleX(1); }
+  50%      { transform: scaleY(1.03) scaleX(0.7); }
+}
+@keyframes licksFlicker {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.08); }
+}
+
+/* Ember rain — falling sparks */
+.ember-rain {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.ember-rain span {
+  position: absolute;
+  width: 3px; height: 3px;
+  background: #ffb050;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ff8020, 0 0 14px #ff5010;
+  opacity: 0;
+  animation: emberFall 5s linear infinite;
+}
+.ember-rain span:nth-child(1)  { left:  6%; animation-delay: 0.1s; animation-duration: 5.2s; }
+.ember-rain span:nth-child(2)  { left: 14%; animation-delay: 1.7s; animation-duration: 4.4s; }
+.ember-rain span:nth-child(3)  { left: 22%; animation-delay: 0.6s; animation-duration: 6.0s; }
+.ember-rain span:nth-child(4)  { left: 30%; animation-delay: 2.4s; animation-duration: 4.8s; }
+.ember-rain span:nth-child(5)  { left: 38%; animation-delay: 0.9s; animation-duration: 5.5s; }
+.ember-rain span:nth-child(6)  { left: 46%; animation-delay: 3.1s; animation-duration: 4.2s; }
+.ember-rain span:nth-child(7)  { left: 54%; animation-delay: 1.4s; animation-duration: 5.8s; }
+.ember-rain span:nth-child(8)  { left: 62%; animation-delay: 2.8s; animation-duration: 4.6s; }
+.ember-rain span:nth-child(9)  { left: 70%; animation-delay: 0.3s; animation-duration: 5.4s; }
+.ember-rain span:nth-child(10) { left: 78%; animation-delay: 2.0s; animation-duration: 5.0s; }
+.ember-rain span:nth-child(11) { left: 86%; animation-delay: 3.5s; animation-duration: 4.5s; }
+.ember-rain span:nth-child(12) { left: 94%; animation-delay: 1.1s; animation-duration: 5.7s; }
+.ember-rain span:nth-child(13) { left: 18%; animation-delay: 4.0s; animation-duration: 4.3s; }
+.ember-rain span:nth-child(14) { left: 50%; animation-delay: 3.7s; animation-duration: 5.1s; }
+.ember-rain span:nth-child(15) { left: 82%; animation-delay: 0.7s; animation-duration: 5.9s; }
+@keyframes emberFall {
+  0%   { transform: translateY(-10vh); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+/* "The Ring is Mine." */
+.ring-claim {
+  position: relative;
+  z-index: 1;
+  margin: 28px auto 10px;
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 4.4vw, 2.8rem);
+  letter-spacing: 0.22em;
+  color: #ffb050;
+  text-shadow:
+    0 0 12px rgba(255, 130, 30, 0.95),
+    0 0 28px rgba(255, 60, 10, 0.85),
+    0 0 56px rgba(220, 30, 0, 0.6);
+  opacity: 0;
+  transform: scale(0.85);
+  animation: claimRise 3s ease-out 0.8s forwards,
+             claimFlicker 0.22s steps(2) infinite 3.8s;
+}
+@keyframes claimRise {
+  0%   { opacity: 0; letter-spacing: 0.6em; transform: scale(0.85) translateY(20px); filter: blur(6px); }
+  100% { opacity: 1; letter-spacing: 0.22em; transform: scale(1)    translateY(0);   filter: blur(0); }
+}
+@keyframes claimFlicker {
+  0%, 100% {
+    text-shadow:
+      0 0 12px rgba(255, 130, 30, 0.95),
+      0 0 28px rgba(255, 60, 10, 0.85),
+      0 0 56px rgba(220, 30, 0, 0.6);
+  }
+  50% {
+    text-shadow:
+      0 0 18px rgba(255, 170, 60, 1),
+      0 0 36px rgba(255, 90, 20, 1),
+      0 0 80px rgba(255, 50, 0, 0.85);
+  }
+}
+
+/* misc */
+.hidden { display: none !important; }
+
+/* ============ MUSIC TOGGLE ============ */
+.music-toggle {
+  position: fixed;
+  bottom: clamp(0.8rem, 1.5vw, 1.4rem);
+  right:  clamp(0.8rem, 1.5vw, 1.4rem);
+  z-index: 9998;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: clamp(0.45rem, 0.4rem + 0.3vw, 0.7rem) clamp(0.7rem, 0.5rem + 0.6vw, 1.1rem);
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.85rem, 0.7rem + 0.3vw, 1.05rem);
+  letter-spacing: 0.08em;
+  color: #f5e3b3;
+  background: linear-gradient(180deg, #3a2814 0%, #1f1408 100%);
+  border: 0.15vmin solid #6a4a20;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 150, 0.18),
+    0 0.4vmin 1.2vmin rgba(0, 0, 0, 0.55);
+  cursor: none;
+  transition: transform 0.15s, box-shadow 0.2s, color 0.2s, opacity 0.3s;
+}
+.music-toggle:hover {
+  color: #fff5d0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 150, 0.3),
+    0 0.6vmin 1.6vmin rgba(255, 160, 60, 0.35);
+}
+.music-toggle.playing {
+  color: #ffd682;
+  border-color: #b67a1a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 150, 0.3),
+    0 0 1.4vmin rgba(255, 160, 60, 0.5);
+}
+.music-toggle.missing {
+  opacity: 0.55;
+  color: #d4a06e;
+  border-color: #6a3a18;
+}
+.music-icon {
+  font-size: 1.05em;
+  line-height: 1;
+}
+.music-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.85em;
+}
+.music-bars span {
+  display: block;
+  width: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  animation: music-bar 1.1s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.music-bars span:nth-child(1) { animation-delay: 0.0s; height: 60%; }
+.music-bars span:nth-child(2) { animation-delay: 0.18s; height: 95%; }
+.music-bars span:nth-child(3) { animation-delay: 0.36s; height: 70%; }
+@keyframes music-bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+
+/* small-screen layout adjustments (everything else scales fluidly via clamp/aspect-ratio) */
+@media (max-width: 720px) {
+  .shire-card {
+    margin: clamp(1.2rem, 4vw, 2rem) auto clamp(2rem, 6vw, 4rem);
+  }
+  .quiz-header { justify-content: center; text-align: center; }
+}
+
+/* portrait phones */
+@media (max-width: 420px) {
+  :root { --ring-size: clamp(160px, 56vw, 240px); }
+  .speak { letter-spacing: 0.1em; }
+  .mellon-input { letter-spacing: 0.15em; }
+}
+
+/* very large screens — keep things from getting absurd */
+@media (min-width: 1800px) {
+  :root {
+    --ring-size: clamp(280px, 22vw, 460px);
+    --big-ring-size: clamp(320px, 30vw, 560px);
+    --gate-w: clamp(420px, 50vw, 880px);
+  }
+}
+
+/* reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.1s !important;
+  }
+  .ring-inscription, .ring-inscription.slow { animation: none; }
+}
