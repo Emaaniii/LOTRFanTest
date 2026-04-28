@@ -687,6 +687,34 @@ a, button, .friend, [data-clickable] { cursor: none; }
 }
 .qcontrols { text-align: center; margin-top: clamp(0.6rem, 1.4vw, 1.2rem); }
 
+/* category / difficulty pill above each question */
+.qcategory {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.7rem, 0.6rem + 0.2vw, 0.85rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #6a4a14;
+  text-align: center;
+  margin-bottom: clamp(0.5rem, 1vw, 0.85rem);
+  opacity: 0.78;
+}
+
+/* loading + error states share the same parchment layout */
+.quiz-status {
+  text-align: center;
+  padding: clamp(1rem, 3vw, 2rem) 0;
+}
+.parchment-spinner {
+  width: clamp(40px, 5vw, 60px);
+  height: clamp(40px, 5vw, 60px);
+  margin: clamp(1rem, 3vw, 2rem) auto;
+  border: 3px solid rgba(74, 42, 8, 0.22);
+  border-top-color: #b67a1a;
+  border-right-color: #d4a040;
+  border-radius: 50%;
+  animation: spin 1.1s linear infinite;
+}
+
 /* ============ RESULT (WIN / LOSE) ============ */
 .result {
   display: none;

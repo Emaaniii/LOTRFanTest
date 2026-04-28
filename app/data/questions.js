@@ -1,62 +1,106 @@
-export const QUESTIONS = [
-  {
-    q: 'What gem did Thorin Oakenshield seek deep within the Lonely Mountain?',
-    choices: ['The Silmaril', 'The Arkenstone', 'The Evenstar', 'The Palantír'],
-    answer: 1,
-    light:
-      "The King's Jewel — the Heart of the Mountain. Bilbo, of course, knew where it was.",
-    shadow: "Not so. The Arkenstone was Thorin's prize — and very nearly his ruin.",
-  },
-  {
-    q: 'What is the elvish way-bread carried by the Fellowship out of Lothlórien?',
-    choices: ['Miruvor', 'Athelas', 'Lembas', 'Cram'],
-    answer: 2,
-    light: 'Lembas — one bite fills the belly of a grown man, and Sam will count the wrappers.',
-    shadow: 'Lembas is the answer, sweet on the tongue and sustaining on long roads.',
-  },
-  {
-    q: 'After breakfast, what meal does Pippin insist hobbits enjoy?',
-    choices: ['Brunch', 'Elevenses', 'Second Breakfast', 'Afters'],
-    answer: 2,
-    light: "Second Breakfast — and Aragorn is quite sure they don't know about it.",
-    shadow: 'Second Breakfast! How could you forget? Pippin would weep.',
-  },
-  {
-    q: 'What word, spoken in the Elvish tongue, opens the West-gate of Moria?',
-    choices: ['Edro', 'Annon', 'Mellon', 'Naur'],
-    answer: 2,
-    light: "Mellon — 'friend'. The riddle was as plain as it was hidden.",
-    shadow: 'Mellon. The doors heard it once already; they will not be tricked twice.',
-  },
-  {
-    q: "Who cut the One Ring from Sauron's hand at the end of the Second Age?",
-    choices: ['Elrond', 'Aragorn', 'Isildur', 'Gil-galad'],
-    answer: 2,
-    light: 'Isildur — and refused to cast it in. The seed of all that followed.',
-    shadow: 'It was Isildur, in the slopes of Orodruin. The histories are clear.',
-  },
-  {
-    q: 'Where must the One Ring be unmade?',
-    choices: ['The Misty Mountains', 'Mount Doom', 'The Cracks of Caradhras', 'Khazad-dûm'],
-    answer: 1,
-    light: 'Mount Doom — Orodruin — where the fire that forged it still burns.',
-    shadow: 'Only the fires of Mount Doom can undo what was made there.',
-  },
-  {
-    q: 'Who, in the very end, caused the Ring to fall into the fire?',
-    choices: ['Frodo', 'Samwise', 'Gollum', 'Aragorn'],
-    answer: 2,
-    light:
-      'Gollum — biting the finger and dancing right off the edge. Pity, in the end, saved the world.',
-    shadow: 'It was Gollum who bore it down — the one Bilbo had spared long ago.',
-  },
-  {
-    q: "What is the name of Aragorn's sword, reforged from the shards of Narsil?",
-    choices: ['Glamdring', 'Sting', 'Andúril', 'Hadhafang'],
-    answer: 2,
-    light: 'Andúril, Flame of the West — the Sword that was Broken, made whole again.',
-    shadow: 'Andúril, the blade of the King — and you will need to remember it.',
-  },
-];
+/* ============================================================
+   Quiz data — fetched from Open Trivia DB
+   https://opentdb.com/api.php
+   ============================================================ */
 
 export const WIN_THRESHOLD = 5;
+export const QUESTIONS_AMOUNT = 8;
+
+/**
+ * `encode=base64` is the cleanest option from OpenTDB — every string
+ * (question, answers, category, difficulty) comes back base64-encoded,
+ * which sidesteps every HTML-entity quirk and embedded-quote hazard.
+ */
+const API_URL =
+  `https://opentdb.com/api.php?amount=${QUESTIONS_AMOUNT}&type=multiple&encode=base64`;
+
+/* ---- LOTR-flavoured feedback (the questions themselves are random
+        general-knowledge trivia; the wrapper stays in voice) ---- */
+const FEEDBACK_LIGHT = [
+  'Well met, traveller — the path lies open.',
+  'Wise as Gandalf himself. Onward.',
+  'The light of Eärendil shines on you.',
+  'The Eldar would nod in approval.',
+  'A friend of the Council, well remembered.',
+  'Galadriel smiles upon your wisdom.',
+  'Even Elrond could ask for no clearer answer.',
+];
+
+const FEEDBACK_SHADOW = [
+  'A shadow has crossed your path.',
+  'The Eye stirs at the wrong word.',
+  "Saruman's whisper has clouded your mind.",
+  'The Dark Lord laughs in his tower.',
+  'Wraiths gather at the edge of memory.',
+  'The Nazgûl draw a step closer.',
+  'A cold wind blows from the East.',
+];
+
+/* ---- helpers ---- */
+
+function decodeBase64(b64) {
+  if (typeof atob === 'undefined') return b64;
+  try {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return b64;
+  }
+}
+
+/** Fisher–Yates shuffle (immutable). */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/* ---- public API ---- */
+
+/**
+ * Fetch a fresh set of multiple-choice trivia questions from Open Trivia DB
+ * and shape each one into the quiz's expected format:
+ *
+ *   { q, choices: string[4], answer: number, light, shadow,
+ *     category, difficulty }
+ *
+ * `cache: 'no-store'` ensures every game starts with a new random set.
+ *
+ * Throws on network failure or any non-success `response_code` from the API
+ * (1 = no results, 2 = invalid parameter, 5 = rate-limited, …).
+ */
+export async function fetchQuestions() {
+  const res = await fetch(API_URL, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`The raven could not reach the great library (HTTP ${res.status}).`);
+  }
+
+  const data = await res.json();
+  if (data.response_code !== 0 || !Array.isArray(data.results)) {
+    throw new Error(
+      `The library answered with a strange word (code ${data.response_code}).`,
+    );
+  }
+
+  return data.results.map((item) => {
+    const correct = decodeBase64(item.correct_answer);
+    const incorrect = item.incorrect_answers.map(decodeBase64);
+    const choices = shuffle([correct, ...incorrect]);
+    return {
+      q: decodeBase64(item.question),
+      choices,
+      answer: choices.indexOf(correct),
+      light: pickRandom(FEEDBACK_LIGHT),
+      shadow: pickRandom(FEEDBACK_SHADOW),
+      category: decodeBase64(item.category),
+      difficulty: decodeBase64(item.difficulty),
+    };
+  });
+}
