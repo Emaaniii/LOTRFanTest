@@ -5,9 +5,9 @@
  * Uses the same five-pass realistic-metal gradient stack as `RingHeader`
  * but with `big*` IDs so the two rings can coexist in the DOM.
  *
- * @param {{ onRestart: () => void }} props
+ * @param {{ nickname?: string, onRestart: () => void, onExit?: () => void }} props
  */
-export default function WinScreen({ onRestart }) {
+export default function WinScreen({ nickname, onRestart, onExit }) {
   return (
     <section className="result win show">
       <div className="ember-bg" />
@@ -119,14 +119,23 @@ export default function WinScreen({ onRestart }) {
         </g>
       </svg>
       <div className="result-card">
-        <h2>The Ring is Yours</h2>
+        <h2>
+          The Ring is Yours{nickname ? <>, <span className="result-name">{nickname}</span></> : null}
+        </h2>
         <p>
           You crossed the wilds, slipped past the Eye, and stood at last upon the threshold of
           doom. The wise might counsel you to cast it in — but the choice, as ever, is yours.
         </p>
-        <button className="btn-stone" onClick={onRestart}>
-          Begin Again
-        </button>
+        <div className="result-actions">
+          <button className="btn-stone" onClick={onRestart}>
+            Begin Again
+          </button>
+          {onExit && (
+            <button className="btn-stone btn-stone-ghost" onClick={onExit}>
+              ← Hub
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );

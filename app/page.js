@@ -5,32 +5,34 @@ import { useEffect, useState } from 'react';
 import PhialCursor from './components/PhialCursor';
 import MusicPlayer from './components/MusicPlayer';
 import RingHeader from './components/RingHeader';
-import Shire from './components/Shire';
-import DurinDoors from './components/DurinDoors';
-import Quiz from './components/Quiz';
-import WinScreen from './components/WinScreen';
-import LoseScreen from './components/LoseScreen';
+import Nickname from './components/Nickname';
+import GamesHub from './components/GamesHub';
+import GameLOTR from './components/GameLOTR';
+import GameBookworm from './components/GameBookworm';
+import GameTactics from './components/GameTactics';
 
 /**
  * Top-level orchestrator.
  *
- * Owns only the single piece of state needed to choose what's on screen:
- * `screen ∈ { 'shire' | 'durin' | 'quiz' | 'win' | 'lose' }`.
+ * State machine:
+ *   1. Nickname screen — until the player picks a name.
+ *   2. Games hub      — three game cards, one per game.
+ *   3. Active game    — `GameLOTR | GameBookworm | GameTactics`.
  *
- * Each child manages its own internal state (input, score, etc.) and
- * communicates outward through a single callback prop.
+ * Each game manages its own internal flow (intro → play → result)
+ * and reports back to this parent only via `onExit`, which returns
+ * the player to the hub.
  */
 export default function Home() {
-  const [screen, setScreen] = useState('shire');
+  const [nickname, setNickname] = useState(null);
+  const [activeGame, setActiveGame] = useState(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [screen]);
+  }, [nickname, activeGame]);
 
-  const restart = () => {
-    if (typeof window !== 'undefined') window.location.reload();
-  };
+  const exitToHub = () => setActiveGame(null);
 
   return (
     <>
@@ -38,11 +40,21 @@ export default function Home() {
       <MusicPlayer />
       <RingHeader />
 
-      {screen === 'shire' && <Shire onBegin={() => setScreen('durin')} />}
-      {screen === 'durin' && <DurinDoors onActivated={() => setScreen('quiz')} />}
-      {screen === 'quiz'  && <Quiz       onFinish={(result) => setScreen(result)} />}
-      {screen === 'win'   && <WinScreen  onRestart={restart} />}
-      {screen === 'lose'  && <LoseScreen onRestart={restart} />}
+      {!nickname && <Nickname onSubmit={setNickname} />}
+
+      {nickname && !activeGame && (
+        <GamesHub nickname={nickname} onSelect={setActiveGame} />
+      )}
+
+      {nickname && activeGame === 'lotr' && (
+        <GameLOTR nickname={nickname} onExit={exitToHub} />
+      )}
+      {nickname && activeGame === 'bookworm' && (
+        <GameBookworm nickname={nickname} onExit={exitToHub} />
+      )}
+      {nickname && activeGame === 'tactics' && (
+        <GameTactics nickname={nickname} onExit={exitToHub} />
+      )}
     </>
   );
 }

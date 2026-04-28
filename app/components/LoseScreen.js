@@ -5,9 +5,9 @@ const EMBER_COUNT = 18;
  * fire shimmer, the cat-slit pupil staring out from a brilliant fire-lit
  * iris, ember rain, and the Dark Lord's claim on the Ring.
  *
- * @param {{ onRestart: () => void }} props
+ * @param {{ nickname?: string, onRestart: () => void, onExit?: () => void }} props
  */
-export default function LoseScreen({ onRestart }) {
+export default function LoseScreen({ nickname, onRestart, onExit }) {
   return (
     <section className="result lose show">
       <div className="fire-bg" />
@@ -24,15 +24,25 @@ export default function LoseScreen({ onRestart }) {
       <div className="ring-claim">&ldquo;The Ring is Mine.&rdquo;</div>
 
       <div className="result-card dark">
-        <h2>The Eye Has Found You</h2>
+        <h2>
+          The Eye Has Found You
+          {nickname ? <>, <span className="result-name">{nickname}</span></> : null}
+        </h2>
         <p>
           The Dark Lord&rsquo;s gaze pierced the veil, and the Nazgûl rode forth on black wings.
           The Ring was torn from your hand and borne home to Barad-dûr. Middle-earth fades into
           shadow…
         </p>
-        <button className="btn-stone" onClick={onRestart}>
-          Try Again
-        </button>
+        <div className="result-actions">
+          <button className="btn-stone" onClick={onRestart}>
+            Try Again
+          </button>
+          {onExit && (
+            <button className="btn-stone btn-stone-ghost" onClick={onExit}>
+              ← Hub
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );
